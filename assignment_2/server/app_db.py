@@ -34,23 +34,13 @@ def init_db():
         )
         db.commit()
 
-        if not table_is_empty():
-            return
-
         data = extract_data()        
         for row in data:
-            query = f"""INSERT INTO SneakerSales (name, old_price, new_price, discount, shop, sizes, picture) VALUES 
-                ('{row["name"]}', '{row["old_price"]}', '{row["new_price"]}', '{row["discount"]}',
+            query = f"""REPLACE INTO SneakerSales (id, name, old_price, new_price, discount, shop, sizes, picture) VALUES 
+                ('{row["id"]}', '{row["name"]}', '{row["old_price"]}', '{row["new_price"]}', '{row["discount"]}',
                 '{row["shop"]}', '{row["sizes"]}', '{row["picture"]}')"""
             cursor.execute(query)
             db.commit()
-
-
-def table_is_empty():
-    db_cursor = get_db().cursor()
-    db_cursor.execute("SELECT * From SneakerSales")
-    result = db_cursor.fetchall()
-    return len(result) == 0       
 
 
 def extract_data():
@@ -59,7 +49,8 @@ def extract_data():
     page = requests.get(url)
     soup = BeautifulSoup(page.text, "html.parser")
 
-    products = soup.find_all("div", class_="iproduct")   
+    products = soup.find_all("div", class_="iproduct")
+    product_index = 0 
     for product in products:
         name = product.find("div", class_="iproduct__title").text[1:-1]
 
@@ -78,6 +69,7 @@ def extract_data():
         sizes = ' '.join(sizes_list)
 
         data_row = {
+            "id": product_index,
             "name": name,
             "old_price": old_price,
             "new_price": new_price,
@@ -87,6 +79,7 @@ def extract_data():
             "picture": picture
         }
 
+        product_index += 1
         data.append(data_row)
 
     return data
