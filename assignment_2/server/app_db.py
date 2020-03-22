@@ -3,7 +3,7 @@ import sqlite3
 import requests
 import re
 
-from flask import Flask, g, request
+from flask import Flask, g
 from flask_cors import CORS
 from bs4 import BeautifulSoup
 
@@ -50,9 +50,10 @@ def extract_data():
     soup = BeautifulSoup(page.text, "html.parser")
 
     products = soup.find_all("div", class_="iproduct")
-    product_index = 0 
     for product in products:
         name = product.find("div", class_="iproduct__title").text[1:-1]
+        product_href = product.find("div", class_="iproduct__title").find("a").get("href")
+        product_index = int(''.join(re.findall(r'\d+', product_href)))
 
         price_info = product.find("div", class_="iproduct__price")
         new_price = price_info.find("span", class_="iproduct__price-current color-active").text
@@ -79,7 +80,6 @@ def extract_data():
             "picture": picture
         }
 
-        product_index += 1
         data.append(data_row)
 
     return data
