@@ -25,59 +25,52 @@ def init_db():
         db = get_db()
         cursor = db.cursor()
         cursor.executescript(
-            """CREATE TABLE IF NOT EXISTS SneakerSales
+            """CREATE TABLE IF NOT EXISTS FarfetchSneakers
                (id integer primary key, 
-               name text not null, old_price text not null,
-               new_price text not null, discount text not null,
-               shop text not null, sizes text not null,
-               picture text not null)"""
+               brand text not null, description text not null,
+               price text not null, discount text not null,
+               href text not null, picture_first text not null,
+               picture_second text not null)"""
         )
         db.commit()
-
-        data = extract_data()        
-        for row in data:
-            query = f"""REPLACE INTO SneakerSales (id, name, old_price, new_price, discount, shop, sizes, picture) VALUES 
-                ('{row["id"]}', '{row["name"]}', '{row["old_price"]}', '{row["new_price"]}', '{row["discount"]}',
-                '{row["shop"]}', '{row["sizes"]}', '{row["picture"]}')"""
-            cursor.execute(query)
-            db.commit()
 
 
 def extract_data():
     data = []
-    url = "https://sneaker.sale/ru/men/browse/krossovki-i-kedy/krossovki/"
+    
+    url = "https://www.farfetch.com/ru/shopping/men/trainers-2/items.aspx?view=180&scale=282"
     page = requests.get(url)
     soup = BeautifulSoup(page.text, "html.parser")
+    products = soup.find_all("li", attrs={"data-test": "productCard"})
 
-    products = soup.find_all("div", class_="iproduct")
     for product in products:
-        name = product.find("div", class_="iproduct__title").text[1:-1]
-        product_href = product.find("div", class_="iproduct__title").find("a").get("href")
-        product_index = int(''.join(re.findall(r'\d+', product_href)))
+        brand = product.find("h3", attrs={"data-test": "productDesignerName"}).text
+        description = product.find("p", attrs={"data-test": "productDescription"}).text.replace("\'", "")
 
-        price_info = product.find("div", class_="iproduct__price")
-        new_price = price_info.find("span", class_="iproduct__price-current color-active").text
-        old_price = price_info.find("span", class_="iproduct__price-old color-muted line-through").text
-        discount = price_info.find("span", class_="discount-badge").text
+        price = product.find("span", attrs={"data-test": "price"}).text
 
-        picture = product.find("div", class_="iproduct__image").find("img").get("data-src")
-        shop = product.find("div", class_="iproduct__source").find("a").get("href").split("redirect/", 1)[1][:-1]
+        discount = product.find("span", attrs={"data-test": "discountPercentage"})
+        if (discount is None):
+            discount = "No discount"
+        else:
+            discount = discount.text
 
-        sizes_list = []
-        size_info = product.find("div", class_="iproduct__additional").find_all("span", class_=re.compile(r'btn'))
-        for size in size_info:
-            sizes_list.append(size.text)
-        sizes = ' '.join(sizes_list)
+        href = "https://www.farfetch.com/ru" + product.find("a", class_="_6871ed").get("href")
+        pictures = [image.get("content") for image in product.find_all("meta", attrs={"itemprop": "image"})]
+        picture_first = pictures[0]
+        picture_second = pictures[1]
+
+        id = int(''.join(re.findall(r'\d+', href)))
 
         data_row = {
-            "id": product_index,
-            "name": name,
-            "old_price": old_price,
-            "new_price": new_price,
+            "id": id,
+            "brand": brand,
+            "description": description,
+            "price": price,
             "discount": discount,
-            "shop": shop,
-            "sizes": sizes,
-            "picture": picture
+            "href": href,
+            "picture_first": picture_first,
+            "picture_second": picture_second
         }
 
         data.append(data_row)
@@ -85,11 +78,25 @@ def extract_data():
     return data
 
 
+def add_content():
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
+
+        data = extract_data()        
+        for row in data:
+            query = f"""REPLACE INTO FarfetchSneakers (id, brand, description, price, discount, href, picture_first, picture_second) VALUES 
+                ('{row["id"]}', '{row["brand"]}', '{row["description"]}', '{row["price"]}', '{row["discount"]}',
+                '{row["href"]}', '{row["picture_first"]}', '{row["picture_second"]}')"""
+            cursor.execute(query)
+        db.commit()
+
+
 @app.route('/get_all')
 def get_all():
     db_cursor = get_db().cursor()
     db_cursor.row_factory = sqlite3.Row
-    db_cursor.execute("SELECT * From SneakerSales")
+    db_cursor.execute("SELECT * From FarfetchSneakers")
     result = db_cursor.fetchall()
     json_result = json.dumps([dict(row) for row in result])
     return json_result
@@ -104,4 +111,5 @@ def close_connection(exception):
 
 if __name__ == '__main__':
     init_db()
+    add_content()
     app.run()

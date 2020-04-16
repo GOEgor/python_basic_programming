@@ -9,10 +9,12 @@ function draw_table() {
             let row = "";
             $.each(val, function (key, val) {
                 let new_val = "";
-                if (key === "old_price") {
-                    new_val = '<del>' + val + '</del>';
-                } else if (key === "picture") {
-                    new_val = '<img src="' + val + '" alt="Picture of sneaker" width="100" height="100">';
+                if (key === "id") {
+                    return;
+                } else if (key === "href") {
+                    new_val = '<a href=\"' + val + '\">Click</a>';
+                } else if (key.startsWith("picture")) {
+                    new_val = '<img src="' + val + '" alt="Picrelated" width="200" height="267">';
                 } else {
                     new_val = val;
                 }
