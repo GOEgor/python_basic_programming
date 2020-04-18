@@ -1,6 +1,5 @@
 import os
-from flask import Flask, flash, request, redirect, url_for, send_from_directory, render_template
-from shutil import copyfile
+from flask import Flask, request, redirect, url_for, send_from_directory, render_template
 from werkzeug.utils import secure_filename
 from colorization import colorize
 

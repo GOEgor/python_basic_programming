@@ -1,7 +1,5 @@
 import numpy as np
 from cv2 import cv2 as cv
-import argparse
-import os.path
 
 
 def colorize(filename):
