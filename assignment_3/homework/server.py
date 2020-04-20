@@ -32,7 +32,7 @@ def upload():
             filename_full = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filename_full)
             processed_filename_full = colorize(filename_full)
-            processed_filename = processed_filename_full.replace(app.config['UPLOAD_FOLDER'] + '\\', '')
+            processed_filename = processed_filename_full.replace(app.config['UPLOAD_FOLDER'], '')[1:]
             return redirect(url_for('result', before=filename, after=processed_filename))
 
     return render_template('upload.html')
